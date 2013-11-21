@@ -85,14 +85,14 @@ class APIComponent(object):
         try:
             endpoint, values = url_adapter.match()
             return endpoint(request, **values)
-        except errors.TeethError as e:
+        except errors.RESTError as e:
             self.log.error('error handling request', exception=e)
             return self.return_error(request, e)
         except HTTPException as e:
             return e
         except Exception as e:
             self.log.error('error handling request', exception=e)
-            return self.return_error(request, errors.TeethError())
+            return self.return_error(request, errors.RESTError())
 
     def get_absolute_url(self, request, path):
         """
@@ -121,7 +121,7 @@ class APIComponent(object):
 
     def return_error(self, request, e):
         """
-        Transform a TeethError into the apprpriate response and return it.
+        Transform a RESTError into the apprpriate response and return it.
         """
         body = self.encoder.encode(e)
         return BaseResponse(body, status=e.status_code, content_type='application/json')

@@ -16,7 +16,7 @@ limitations under the License.
 
 from collections import OrderedDict
 
-from teeth_rest import Serializable
+from teeth_rest.encoding import Serializable
 
 
 class RESTError(Exception, Serializable):
