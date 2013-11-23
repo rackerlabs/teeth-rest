@@ -63,7 +63,7 @@ class APIServer(object):
         request = BaseRequest(environ)
         response = self.dispatch_request(request)
         if isinstance(response, responses.ApplicationDependentResponse):
-            response.bind_application(self, request)
+            response.bind_application(self)
         return response(environ, start_response)
 
     def add_component(self, prefix, component):
