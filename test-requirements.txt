@@ -1,4 +1,2 @@
-pep8
-pep257
-pyflakes
-plumbum
+nose
+mock

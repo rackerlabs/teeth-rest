@@ -13,3 +13,5 @@ twistd.log
 .coverage
 _trial_coverage/
 *.egg-info
+.tox/*
+*.egg
