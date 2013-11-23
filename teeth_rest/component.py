@@ -18,12 +18,12 @@ import json
 from uuid import UUID
 
 from structlog import get_logger
-from werkzeug.routing import Map, Rule, BaseConverter, ValidationError
-from werkzeug.wrappers import BaseRequest, BaseResponse
+from werkzeug.routing import Map, Submount, Rule, BaseConverter, ValidationError
+from werkzeug.wrappers import BaseRequest
 from werkzeug.exceptions import HTTPException
 from werkzeug.http import parse_options_header
 
-from teeth_overlord import errors
+from teeth_rest import errors, encoding, responses
 
 
 class UUIDConverter(BaseConverter):
@@ -50,15 +50,55 @@ class UUIDConverter(BaseConverter):
         return str(value)
 
 
+class APIServer(object):
+    def __init__(self, encoder=None):
+        self.log = get_logger()
+        self.url_map = Map(converters={'uuid': UUIDConverter})
+        if encoder:
+            self.encoder = encoder
+        else:
+            self.encoder = encoding.RESTJSONEncoder(encoding.SerializationViews.PUBLIC, indent=4)
+
+    def __call__(self, environ, start_response):
+        request = BaseRequest(environ)
+        response = self.dispatch_request(request)
+        if isinstance(response, responses.ApplicationDependentResponse):
+            response.bind_application(self)
+        return response(environ, start_response)
+
+    def add_component(self, prefix, component):
+        """
+        Route an absolute prefix to a component.
+        """
+        self.url_map.add(Submount(prefix, component.register_for_rules(self)))
+
+    def dispatch_request(self, request):
+        """
+        Given a Werkzeug request, generate a Response.
+        """
+        url_adapter = self.url_map.bind_to_environ(request.environ)
+        try:
+            endpoint, values = url_adapter.match()
+            return endpoint(request, **values)
+        except errors.RESTError as e:
+            self.log.error('error handling request', exception=e)
+            return responses.JSONResponse(e, e.status_code)
+        except HTTPException as e:
+            return e
+        except Exception as e:
+            self.log.error('error handling request', exception=e)
+            e = errors.RESTError()
+            return responses.JSONResponse(e, e.status_code)
+
+
 class APIComponent(object):
     """
     Base class for implementing API components.
     """
-    def __init__(self, config, encoder):
-        self.config = config
+    def __init__(self):
         self.log = get_logger()
-        self.encoder = encoder
-        self.url_map = Map(converters={'uuid': UUIDConverter})
+        self.rules = []
+        self.app = None
         self.add_routes()
 
     def __call__(self, environ, start_response):
@@ -75,56 +115,18 @@ class APIComponent(object):
         """
         Route a relative path to a method.
         """
-        self.url_map.add(Rule(pattern, methods=[method], endpoint=fn))
+        if self.app:
+            raise RuntimeError('Routes may not be added after an APIComponent is registered with'
+                               ' an APIApplication')
 
-    def dispatch_request(self, request):
-        """
-        Given a Werkzeug request, generate a Response.
-        """
-        url_adapter = self.url_map.bind_to_environ(request.environ)
-        try:
-            endpoint, values = url_adapter.match()
-            return endpoint(request, **values)
-        except errors.RESTError as e:
-            self.log.error('error handling request', exception=e)
-            return self.return_error(request, e)
-        except HTTPException as e:
-            return e
-        except Exception as e:
-            self.log.error('error handling request', exception=e)
-            return self.return_error(request, errors.RESTError())
+        self.rules.append(Rule(pattern, methods=[method], endpoint=fn))
 
-    def get_absolute_url(self, request, path):
-        """
-        Given a request and an absolute path, attempt to construct an
-        absolute URL by examining the `Host` and `X-Forwarded-Proto`
-        headers.
-        """
-        host = request.headers.get('host')
-        proto = request.headers.get('x-forwarded-proto', default='http')
-        return "{proto}://{host}{path}".format(proto=proto, host=host, path=path)
+    def register_for_rules(self, app):
+        if self.app:
+            raise RuntimeError('APIComponents may not be registered with multiple APIApplications')
+        self.app = app
 
-    def return_ok(self, request, result):
-        """
-        Return 200 and serialize the correspondig result.
-        """
-        body = self.encoder.encode(result)
-        return BaseResponse(body, status=200, content_type='application/json')
-
-    def return_created(self, request, path):
-        """
-        Return 201 and a Location generated from `path`.
-        """
-        response = BaseResponse(status=201, content_type='application/json')
-        response.headers.set('Location', self.get_absolute_url(request, path))
-        return response
-
-    def return_error(self, request, e):
-        """
-        Transform a RESTError into the apprpriate response and return it.
-        """
-        body = self.encoder.encode(e)
-        return BaseResponse(body, status=e.status_code, content_type='application/json')
+        return self.rules
 
     def parse_content(self, request):
         """

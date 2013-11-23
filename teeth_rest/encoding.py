@@ -20,7 +20,7 @@ from uuid import UUID
 
 class Serializable(object):
     """
-    Base class for things that can be serialized in Teeth Overlord.
+    Base class for things that can be serialized.
     """
     def serialize(self, view):
         """
@@ -42,7 +42,7 @@ class SerializationViews(object):
     PUBLIC = 'PUBLIC'
 
 
-class TeethJSONEncoder(json.JSONEncoder):
+class RESTJSONEncoder(json.JSONEncoder):
     """
     A slightly customized JSON encoder. This does two things beyond
     what the default can do:
@@ -65,7 +65,7 @@ class TeethJSONEncoder(json.JSONEncoder):
         if self.indent is not None:
             delimiter = '\n'
 
-        return super(TeethJSONEncoder, self).encode(o) + delimiter
+        return super(RESTJSONEncoder, self).encode(o) + delimiter
 
     def default(self, o):
         """
