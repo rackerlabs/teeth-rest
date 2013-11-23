@@ -28,18 +28,21 @@ class ApplicationDependentResponse(BaseResponse):
 
         return super(ApplicationDependentResponse, self).__call__(*args, **kwargs)
 
-    def bind_application(self, app):
+    def bind_application(self, app, request):
         self.app = app
+        self.request = request
 
 
 class CreatedResponse(ApplicationDependentResponse):
-    def __init__(self, location_endpoint):
+    def __init__(self, location_endpoint, url_parameters):
         super(CreatedResponse, self).__init__(status=201)
         self._location_endpoint = location_endpoint
+        self._url_parameters = url_parameters
 
-    def bind_application(self, app):
-        super(CreatedResponse, app).bind_application(app)
-        # TODO: Set Location header
+    def bind_application(self, app, request):
+        super(CreatedResponse, self).bind_application(app, request)
+        bound_urls = app.url_map.bind_to_environ(request)
+        self.headers.set('Location', bound_urls.build(self._location_endpoint, self._url_parameters))
 
 
 class JSONResponse(ApplicationDependentResponse):
@@ -47,8 +50,8 @@ class JSONResponse(ApplicationDependentResponse):
         super(JSONResponse, self).__init__(status=status, content_type='application/json')
         self._body_obj = obj
 
-    def bind_application(self, app):
-        super(JSONResponse, self).bind_application(app)
+    def bind_application(self, app, request):
+        super(JSONResponse, self).bind_application(app, request)
         self.set_data(self.app.encoder.encode(self._body_obj))
 
 
