@@ -20,7 +20,7 @@ from uuid import UUID
 from structlog import get_logger
 from werkzeug.routing import Map, Submount, Rule, BaseConverter, ValidationError
 from werkzeug.wrappers import BaseRequest
-from werkzeug.exceptions import HTTPException
+from werkzeug.exceptions import HTTPException, NotFound as WerkzeugNotFound
 from werkzeug.http import parse_options_header
 
 from teeth_rest import errors, encoding, responses
@@ -83,8 +83,9 @@ class APIServer(object):
         except errors.RESTError as e:
             self.log.error('error handling request', exception=e)
             return responses.JSONResponse(e, e.status_code)
-        except HTTPException as e:
-            return e
+        except WerkzeugNotFound as e:
+            e = errors.NotFound()
+            return responses.JSONResponse(e, e.status_code)
         except Exception as e:
             self.log.error('error handling request', exception=e)
             e = errors.RESTError()

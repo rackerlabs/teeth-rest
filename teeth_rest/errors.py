@@ -58,3 +58,14 @@ class InvalidContentError(RESTError):
 
     def __init__(self, details):
         self.details = details
+
+
+class NotFound(RESTError):
+    """
+    Error which occurs when a user supplies invalid content, either
+    because that content cannot be parsed according to the advertised
+    `Content-Type`, or due to a content validation error.
+    """
+    message = 'Not found'
+    status_code = 404
+    details = 'The requested URL was not found.'
