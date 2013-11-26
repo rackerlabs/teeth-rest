@@ -42,7 +42,8 @@ class CreatedResponse(ApplicationDependentResponse):
     def bind_application(self, app):
         super(CreatedResponse, self).bind_application(app)
         bound_urls = app.url_map.bind_to_environ(self._request)
-        self.headers.set('Location', bound_urls.build(self._location_endpoint, self._url_parameters))
+        location = bound_urls.build(self._location_endpoint, self._url_parameters, force_external=True)
+        self.headers.set('Location', location)
 
 
 class JSONResponse(ApplicationDependentResponse):
