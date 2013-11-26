@@ -55,6 +55,6 @@ class JSONResponse(ApplicationDependentResponse):
         self.set_data(self.app.encoder.encode(self._body_obj))
 
 
-class OKResponse(JSONResponse):
+class ItemResponse(JSONResponse):
     def __init__(self, obj):
         super(OKResponse, self).__init__(obj, 200)
