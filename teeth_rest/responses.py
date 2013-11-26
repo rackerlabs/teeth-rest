@@ -59,3 +59,28 @@ class JSONResponse(ApplicationDependentResponse):
 class ItemResponse(JSONResponse):
     def __init__(self, obj):
         super(OKResponse, self).__init__(obj, 200)
+
+
+class PaginatedResponse(ApplicationDependentResponse):
+    def __init__(self, request, objs, list_endpoint, marker, limit, **kwargs):
+        super(PaginatedResponse, self).__init__(status=200)
+        self._request = request
+        self._objs = objs
+        self._list_endpoint = list_endpoint
+        self._url_parameters = kwargs
+        self._url_parameters['limit'] = limit
+        self._url_parameters['marker'] = marker
+
+    def bind_application(self, app):
+        super(PaginatedResponse, self).bind_application(app)
+        bound_urls = app.url_map.bind_to_environ(self._request)
+        links = []
+
+        if self._url_parameters['marker'] is not None:
+            next_href = bound_urls.build(self._list_endpoint, self._url_parameters, force_external=True)
+            links.append({'rel': 'next', 'href': next_href})
+
+        print self._url_parameters['marker']
+
+        data = {'items': self._objs, 'links': links}
+        self.set_data(self.app.encoder.encode(data))
