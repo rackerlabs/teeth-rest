@@ -58,7 +58,7 @@ class JSONResponse(ApplicationDependentResponse):
 
 class ItemResponse(JSONResponse):
     def __init__(self, obj):
-        super(OKResponse, self).__init__(obj, 200)
+        super(ItemResponse, self).__init__(obj, 200)
 
 
 class PaginatedResponse(ApplicationDependentResponse):
