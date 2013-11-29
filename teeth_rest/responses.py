@@ -80,7 +80,5 @@ class PaginatedResponse(ApplicationDependentResponse):
             next_href = bound_urls.build(self._list_endpoint, self._url_parameters, force_external=True)
             links.append({'rel': 'next', 'href': next_href})
 
-        print self._url_parameters['marker']
-
         data = {'items': self._objs, 'links': links}
         self.set_data(self.app.encoder.encode(data))
