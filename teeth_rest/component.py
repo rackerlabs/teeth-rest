@@ -22,6 +22,7 @@ from werkzeug.routing import Map, Submount, Rule, BaseConverter, ValidationError
 from werkzeug.wrappers import BaseRequest
 from werkzeug.exceptions import HTTPException, NotFound as WerkzeugNotFound
 from werkzeug.http import parse_options_header
+from werkzeug.datastructures import MultiDict
 
 from teeth_rest import errors, encoding, responses
 
@@ -54,6 +55,7 @@ class APIServer(object):
     def __init__(self, encoder=None):
         self.log = get_logger()
         self.url_map = Map(converters={'uuid': UUIDConverter})
+        self.components = MultiDict()
         if encoder:
             self.encoder = encoder
         else:
@@ -70,15 +72,19 @@ class APIServer(object):
         """
         Route an absolute prefix to a component.
         """
+        self.components.add(prefix, component)
         self.url_map.add(Submount(prefix, component.register_for_rules(self)))
+
+    def match_request(self, request):
+        url_adapter = self.url_map.bind_to_environ(request.environ)
+        return url_adapter.match()
 
     def dispatch_request(self, request):
         """
         Given a Werkzeug request, generate a Response.
         """
-        url_adapter = self.url_map.bind_to_environ(request.environ)
         try:
-            endpoint, values = url_adapter.match()
+            endpoint, values = self.match_request(request)
             return endpoint(request, **values)
         except errors.RESTError as e:
             self.log.error('error handling request', exception=e)
