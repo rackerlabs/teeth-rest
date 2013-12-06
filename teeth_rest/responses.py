@@ -46,6 +46,16 @@ class CreatedResponse(ApplicationDependentResponse):
         self.headers.set('Location', location)
 
 
+class DeletedResponse(BaseResponse):
+    def __init__(self):
+        super(DeletedResponse, self).__init__(status=204)
+
+
+class UpdatedResponse(BaseResponse):
+    def __init__(self):
+        super(UpdatedResponse, self).__init__(status=204)
+
+
 class JSONResponse(ApplicationDependentResponse):
     def __init__(self, obj, status):
         super(JSONResponse, self).__init__(status=status, content_type='application/json')
