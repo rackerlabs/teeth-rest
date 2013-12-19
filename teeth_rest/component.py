@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import datetime
 import json
 from uuid import UUID
 
@@ -79,10 +80,20 @@ class APIServer(object):
         url_adapter = self.url_map.bind_to_environ(request.environ)
         return url_adapter.match()
 
+    def _log_request(self, request):
+        data = {
+            'timestamp': datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S.%f'),
+            'method': request.environ['REQUEST_METHOD'],
+            'path': request.environ['PATH_INFO'],
+        }
+        self.log.info(**data)
+
     def dispatch_request(self, request):
         """
         Given a Werkzeug request, generate a Response.
         """
+        self._log_request(request)
+
         try:
             endpoint, values = self.match_request(request)
             return endpoint(request, **values)
