@@ -52,8 +52,8 @@ class DeletedResponse(BaseResponse):
 
 
 class UpdatedResponse(BaseResponse):
-    def __init__(self):
-        super(UpdatedResponse, self).__init__(status=204)
+    def __init__(self, status=204, **kwargs):
+        super(UpdatedResponse, self).__init__(status=status, **kwargs)
 
 
 class JSONResponse(ApplicationDependentResponse):
