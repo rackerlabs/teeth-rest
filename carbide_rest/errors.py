@@ -16,11 +16,11 @@ limitations under the License.
 
 from collections import OrderedDict
 
-from teeth_rest.encoding import Serializable
+from carbide_rest.encoding import Serializable
 
 
 class RESTError(Exception, Serializable):
-    """Base class for errors generated in teeth."""
+    """Base class for errors generated in carbide."""
     message = 'An error occurred'
     details = 'An unexpected error occurred. Please try back later.'
     status_code = 500

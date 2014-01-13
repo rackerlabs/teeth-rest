@@ -25,7 +25,7 @@ from werkzeug.exceptions import HTTPException, NotFound as WerkzeugNotFound
 from werkzeug.http import parse_options_header
 from werkzeug.datastructures import MultiDict
 
-from teeth_rest import errors, encoding, responses
+from carbide_rest import errors, encoding, responses
 
 
 class UUIDConverter(BaseConverter):
