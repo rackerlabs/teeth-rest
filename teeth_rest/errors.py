@@ -14,12 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from collections import OrderedDict
+import collections
 
-from teeth_rest.encoding import Serializable
+from teeth_rest import encoding
 
 
-class RESTError(Exception, Serializable):
+class RESTError(Exception, encoding.Serializable):
     """Base class for errors generated in teeth."""
     message = 'An error occurred'
     details = 'An unexpected error occurred. Please try back later.'
@@ -27,7 +27,7 @@ class RESTError(Exception, Serializable):
 
     def serialize(self, view):
         """Turn a RESTError into a dict."""
-        return OrderedDict([
+        return collections.OrderedDict([
             ('type', self.__class__.__name__),
             ('code', self.status_code),
             ('message', self.message),
@@ -36,20 +36,19 @@ class RESTError(Exception, Serializable):
 
 
 class UnsupportedContentTypeError(RESTError):
-    """
-    Error which occurs when a user supplies an unsupported
+    """Error which occurs when a user supplies an unsupported
     `Content-Type` (ie, anything other than `application/json`).
     """
     message = 'Unsupported Content-Type'
     status_code = 400
 
     def __init__(self, content_type):
-        self.details = 'Content-Type "{content_type}" is not supported'.format(content_type=content_type)
+        self.details = 'Content-Type "{content_type}" is not supported'
+        self.details = self.details.format(content_type=content_type)
 
 
 class InvalidContentError(RESTError):
-    """
-    Error which occurs when a user supplies invalid content, either
+    """Error which occurs when a user supplies invalid content, either
     because that content cannot be parsed according to the advertised
     `Content-Type`, or due to a content validation error.
     """
@@ -61,8 +60,7 @@ class InvalidContentError(RESTError):
 
 
 class NotFound(RESTError):
-    """
-    Error which occurs when a user supplies invalid content, either
+    """Error which occurs when a user supplies invalid content, either
     because that content cannot be parsed according to the advertised
     `Content-Type`, or due to a content validation error.
     """

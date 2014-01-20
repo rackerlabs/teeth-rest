@@ -15,23 +15,18 @@ limitations under the License.
 """
 
 import json
-from uuid import UUID
+import uuid
 
 
 class Serializable(object):
-    """
-    Base class for things that can be serialized.
-    """
+    """Base class for things that can be serialized."""
     def serialize(self, view):
-        """
-        Turn this object into a dict.
-        """
+        """Turn this object into a dict."""
         raise NotImplementedError()
 
 
 class SerializationViews(object):
-    """
-    The set of available serialization 'views'. Views represent the
+    """The set of available serialization 'views'. Views represent the
     context in which an object is being serialized. For example, an
     object might be serialized differently for a PUBLIC view as compared
     to an ADMIN view.
@@ -43,8 +38,7 @@ class SerializationViews(object):
 
 
 class RESTJSONEncoder(json.JSONEncoder):
-    """
-    A slightly customized JSON encoder. This does two things beyond
+    """A slightly customized JSON encoder. This does two things beyond
     what the default can do:
 
     1. Knows about views
@@ -56,25 +50,22 @@ class RESTJSONEncoder(json.JSONEncoder):
         self.view = view
 
     def encode(self, o):
-        """
-        Turn an object into JSON.
-        """
+        """Turn an object into JSON."""
         delimiter = ''
 
-        # Note: if indent is None, newlines are still inserted, so we should too
+        # if indent is None, newlines are still inserted, so we should too.
         if self.indent is not None:
             delimiter = '\n'
 
         return super(RESTJSONEncoder, self).encode(o) + delimiter
 
     def default(self, o):
-        """
-        Turn an object into a serializable object. In particular, by
+        """Turn an object into a serializable object. In particular, by
         calling :meth:`.Serializable.serialize`.
         """
         if isinstance(o, Serializable):
             return o.serialize(self.view)
-        elif isinstance(o, UUID):
+        elif isinstance(o, uuid.UUID):
             return str(o)
         else:
             return json.JSONEncoder.default(self, o)
