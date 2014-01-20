@@ -30,7 +30,7 @@ class ExampleAPI(component.APIComponent):
 
 
 class ExampleAPIServer(component.APIServer):
-    def __init__(self, agent):
+    def __init__(self):
         super(ExampleAPIServer, self).__init__()
         self.add_component('/v1.0', ExampleAPI())
 ```
