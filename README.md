@@ -1,6 +1,8 @@
 Teeth REST
 ==========
 
+[![Build Status](https://travis-ci.org/rackerlabs/teeth-rest.png?branch=master)](https://travis-ci.org/rackerlabs/teeth-rest)
+
 Common REST components for [Teeth
 Overlord](https://github.com/rackerlabs/teeth-overlord) and [Teeth
 Agent](https://github.com/rackerlabs/teeth-agent).
