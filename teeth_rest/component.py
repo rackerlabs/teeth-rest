@@ -16,82 +16,78 @@ limitations under the License.
 
 import datetime
 import json
-from uuid import UUID
+import uuid
 
-from structlog import get_logger
-from werkzeug.routing import Map, Submount, Rule, BaseConverter, ValidationError
-from werkzeug.wrappers import BaseRequest
-from werkzeug.exceptions import HTTPException, NotFound as WerkzeugNotFound
-from werkzeug.http import parse_options_header
-from werkzeug.datastructures import MultiDict
+import structlog
+from werkzeug import datastructures
+from werkzeug import exceptions
+from werkzeug import http
+from werkzeug import routing
+from werkzeug import wrappers
 
-from teeth_rest import errors, encoding, responses
+from teeth_rest import encoding
+from teeth_rest import errors
+from teeth_rest import responses
 
 
-class UUIDConverter(BaseConverter):
-    """
-    Validate and transform UUIDs in urls.
-    """
+class UUIDConverter(routing.BaseConverter):
+    """Validate and transform UUIDs in urls."""
 
     def __init__(self, url_map):
         super(UUIDConverter, self).__init__(url_map)
 
     def to_python(self, value):
-        """
-        Transform a UUID string into a python UUID.
-        """
+        """Transform a UUID string into a python UUID."""
         try:
-            return UUID(value)
+            return uuid.UUID(value)
         except ValueError:
-            raise ValidationError()
+            raise routing.ValidationError()
 
     def to_url(self, value):
-        """
-        Transform a python UUID into a string.
-        """
+        """Transform a python UUID into a string."""
         return str(value)
 
 
 class APIServer(object):
     def __init__(self, encoder=None):
-        self.log = get_logger()
-        self.url_map = Map(converters={'uuid': UUIDConverter})
-        self.components = MultiDict()
+        self.log = structlog.get_logger()
+        self.url_map = routing.Map(converters={'uuid': UUIDConverter})
+        self.components = datastructures.MultiDict()
         if encoder:
             self.encoder = encoder
         else:
-            self.encoder = encoding.RESTJSONEncoder(encoding.SerializationViews.PUBLIC, indent=4)
+            self.encoder = encoding.RESTJSONEncoder(
+                encoding.SerializationViews.PUBLIC,
+                indent=4)
 
     def __call__(self, environ, start_response):
-        request = BaseRequest(environ)
+        request = wrappers.BaseRequest(environ)
         response = self.dispatch_request(request)
         if isinstance(response, responses.ApplicationDependentResponse):
             response.bind_application(self)
         return response(environ, start_response)
 
     def add_component(self, prefix, component):
-        """
-        Route an absolute prefix to a component.
-        """
+        """Route an absolute prefix to a component."""
         self.components.add(prefix, component)
-        self.url_map.add(Submount(prefix, component.register_for_rules(self)))
+        mount = routing.Submount(prefix, component.register_for_rules(self))
+        self.url_map.add(mount)
 
     def match_request(self, request):
         url_adapter = self.url_map.bind_to_environ(request.environ)
         return url_adapter.match()
 
     def _log_request(self, request):
+        timestamp = datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S.%f')
         data = {
-            'timestamp': datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S.%f'),
+            'timestamp': timestamp,
             'method': request.environ['REQUEST_METHOD'],
             'path': request.environ['PATH_INFO'],
         }
         self.log.info(**data)
 
     def dispatch_request(self, request):
-        """
-        Given a Werkzeug request, generate a Response.
-        """
+        """Given a Werkzeug request, generate a Response."""
         self._log_request(request)
 
         try:
@@ -100,7 +96,7 @@ class APIServer(object):
         except errors.RESTError as e:
             self.log.error('error handling request', exception=e)
             return responses.JSONResponse(e, e.status_code)
-        except WerkzeugNotFound as e:
+        except exceptions.NotFound as e:
             e = errors.NotFound()
             return responses.JSONResponse(e, e.status_code)
         except Exception as e:
@@ -110,51 +106,48 @@ class APIServer(object):
 
 
 class APIComponent(object):
-    """
-    Base class for implementing API components.
-    """
+    """Base class for implementing API components."""
     def __init__(self):
-        self.log = get_logger()
+        self.log = structlog.get_logger()
         self.rules = []
         self.app = None
         self.add_routes()
 
     def __call__(self, environ, start_response):
-        request = BaseRequest(environ)
+        request = wrappers.BaseRequest(environ)
         return self.dispatch_request(request)(environ, start_response)
 
     def add_routes(self):
-        """
-        Called during initialization. Override to map relative routes to methods.
+        """Called during initialization.
+        Override to map relative routes to methods.
         """
         pass
 
     def route(self, method, pattern, fn):
-        """
-        Route a relative path to a method.
-        """
+        """Route a relative path to a method."""
         if self.app:
-            raise RuntimeError('Routes may not be added after an APIComponent is registered with'
-                               ' an APIApplication')
+            raise RuntimeError('Routes may not be added after an APIComponent '
+                               'is registered with an APIApplication')
 
-        self.rules.append(Rule(pattern, methods=[method], endpoint=fn))
+        self.rules.append(routing.Rule(pattern, methods=[method], endpoint=fn))
 
     def register_for_rules(self, app):
         if self.app:
-            raise RuntimeError('APIComponents may not be registered with multiple APIApplications')
+            raise RuntimeError('APIComponents may not be registered with '
+                               'multiple APIApplications')
         self.app = app
 
         return self.rules
 
     def parse_content(self, request):
-        """
-        Extract the content from the passed request, and attempt to
+        """Extract the content from the passed request, and attempt to
         parse it according to the specified `Content-Type`.
 
         Note: currently only `application/json` is supported.
         """
-        content_type_header = request.headers.get('content-type', default='application/json')
-        content_type = parse_options_header(content_type_header)[0]
+        content_type_header = request.headers.get('content-type',
+                                                  default='application/json')
+        content_type = http.parse_options_header(content_type_header)[0]
 
         if content_type == 'application/json':
             try:

@@ -14,19 +14,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from werkzeug.wrappers import BaseResponse
+from werkzeug import wrappers
 
 
-class ApplicationDependentResponse(BaseResponse):
+class ApplicationDependentResponse(wrappers.BaseResponse):
     def __init__(self, *args, **kwargs):
         super(ApplicationDependentResponse, self).__init__(*args, **kwargs)
         self.app = None
 
     def __call__(self, *args, **kwargs):
         if not self.app:
-            raise RuntimeError('ApplicationDependentResponse called prior to bind_application() call')
+            raise RuntimeError('ApplicationDependentResponse called prior to '
+                               'bind_application() call')
 
-        return super(ApplicationDependentResponse, self).__call__(*args, **kwargs)
+        return super(ApplicationDependentResponse, self).__call__(*args,
+                                                                  **kwargs)
 
     def bind_application(self, app):
         self.app = app
@@ -42,23 +44,26 @@ class CreatedResponse(ApplicationDependentResponse):
     def bind_application(self, app):
         super(CreatedResponse, self).bind_application(app)
         bound_urls = app.url_map.bind_to_environ(self._request)
-        location = bound_urls.build(self._location_endpoint, self._url_parameters, force_external=True)
+        location = bound_urls.build(self._location_endpoint,
+                                    self._url_parameters,
+                                    force_external=True)
         self.headers.set('Location', location)
 
 
-class DeletedResponse(BaseResponse):
+class DeletedResponse(wrappers.BaseResponse):
     def __init__(self):
         super(DeletedResponse, self).__init__(status=204)
 
 
-class UpdatedResponse(BaseResponse):
+class UpdatedResponse(wrappers.BaseResponse):
     def __init__(self, status=204, **kwargs):
         super(UpdatedResponse, self).__init__(status=status, **kwargs)
 
 
 class JSONResponse(ApplicationDependentResponse):
     def __init__(self, obj, status):
-        super(JSONResponse, self).__init__(status=status, content_type='application/json')
+        super(JSONResponse, self).__init__(status=status,
+                                           content_type='application/json')
         self._body_obj = obj
 
     def bind_application(self, app):
@@ -87,7 +92,9 @@ class PaginatedResponse(ApplicationDependentResponse):
         links = []
 
         if self._url_parameters['marker'] is not None:
-            next_href = bound_urls.build(self._list_endpoint, self._url_parameters, force_external=True)
+            next_href = bound_urls.build(self._list_endpoint,
+                                         self._url_parameters,
+                                         force_external=True)
             links.append({'rel': 'next', 'href': next_href})
 
         data = {'items': self._objs, 'links': links}
