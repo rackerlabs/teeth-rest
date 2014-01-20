@@ -8,5 +8,6 @@ notifications:
   irc:
     channels:
       - "chat.freenode.net#teeth-dev"
-    on_success: [always]
-    on_failure: [always] 
+    use_notice: true
+    skip_join: true
+  email: false
