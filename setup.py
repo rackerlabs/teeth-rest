@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+# Looking to see if this notifies to IRC
+
 
 """
 Copyright 2013 Rackspace, Inc.
