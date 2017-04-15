@@ -16,8 +16,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from setuptools import setup
-
+#from setuptools import setup
+# This is gonna fail now, trying to get notifications to go where expected
 setup(
     setup_requires=['pbr'],
     pbr=True,
